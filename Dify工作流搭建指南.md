@@ -417,7 +417,8 @@ def main(match_score_text: str) -> dict:
                                                          ├──→ 技能匹配打分 ────→ match_score ──────┤
                                                          │         │                              │
                                                          │         └──→ 提取分数 ──→ overall_score│
-                                                         │                                        ├──→ 综合报告生成 ──→ final_report ──→ 结束
+                                                         │                                        ├──→ 综合报告生成 ──→
+                                                         final_report ──→ 结束
                                                          └──→ 风险点识别 ──────→ risk_analysis ───┘
 ```
 

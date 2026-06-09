@@ -7,7 +7,7 @@ from contextlib import asynccontextmanager
 
 from app.config import API_PREFIX, PROJECT_NAME, VERSION
 from app.models.database import init_db
-from app.api import match, interview
+from app.api import match, interview, dashboard  # dashboard 为新增的统计 API
 
 
 @asynccontextmanager
@@ -36,6 +36,7 @@ app.add_middleware(
 # 注册路由
 app.include_router(match.router, prefix=API_PREFIX)
 app.include_router(interview.router, prefix=API_PREFIX)
+app.include_router(dashboard.router, prefix=API_PREFIX)  # 新增：Dashboard 统计页 API
 
 
 @app.get("/")

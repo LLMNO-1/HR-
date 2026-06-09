@@ -11,6 +11,11 @@
           text-color="#bfcbd9"
           active-text-color="#409EFF"
         >
+          <!-- 新增：Dashboard 数据概览入口，放置在最前面 -->
+          <el-menu-item index="/dashboard">
+            <el-icon><DataAnalysis /></el-icon>
+            <span>数据概览</span>
+          </el-menu-item>
           <el-menu-item index="/match">
             <el-icon><DocumentChecked /></el-icon>
             <span>候选人匹配筛查</span>

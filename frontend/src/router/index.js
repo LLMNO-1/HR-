@@ -3,7 +3,12 @@ import { createRouter, createWebHistory } from 'vue-router'
 const routes = [
   {
     path: '/',
-    redirect: '/match'
+    redirect: '/dashboard'  // 修改：根路径跳转到新增的 Dashboard 首页
+  },
+  {  // 新增：数据概览 Dashboard 首页路由
+    path: '/dashboard',
+    name: 'Dashboard',
+    component: () => import('../views/Dashboard.vue')
   },
   {
     path: '/match',

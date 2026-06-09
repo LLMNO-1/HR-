@@ -80,9 +80,13 @@ class DifyClient:
         注意：Dify 工作流的输入变量名需要与这里一致。
         如果 Dify 中变量名为 resume_text 和 jd_text，则无需修改。
         如果不同，请修改 inputs 中的 key。
+
+        修改：从 blocking 改为 streaming 模式，避免 Cloudflare 100 秒网关超时（504）
+        blocking 模式下，Cloudflare 代理会在 ~100s 切断长连接，返回 HTML 错误页；
+        streaming 模式逐块推送 SSE 事件，不受网关超时限制，适合多 LLM 节点工作流。
         """
         start = time.time()
-        result = self._run_workflow_blocking(
+        result = self._run_workflow_streaming(  # 改用 streaming，避免 Cloudflare 504 超时
             workflow_id=DIFY_WORKFLOW_CANDIDATE_MATCH,
             api_key=DIFY_API_KEY_MATCH,
             inputs={

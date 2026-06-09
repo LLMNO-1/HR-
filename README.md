@@ -103,6 +103,18 @@
 - **结论冲突检测**：A 说录用 B 说淘汰、结论一致但理由相反、初终面评分级差过大
 - **综合报告**：含评分矩阵、分差标注、证据质量评级、补充面试建议
 
+### 模块三：数据概览 Dashboard（新增）
+
+```
+首页 Dashboard → GET /api/v1/dashboard/stats → 聚合统计 → ECharts 可视化
+```
+
+- **统计卡片**：匹配筛查总数、面试评估总数、平均匹配分、累计评估量
+- **状态分布**：匹配评估和面试评估的状态分布（已完成 / 处理中 / 失败）环形饼图
+- **一致性分布**：面试结论一致性等级（一致 / 基本一致 / 存在分歧 / 严重分歧）饼图
+- **月度趋势**：近 6 个月匹配筛查和面试评估的月度增量折线图
+- 数据来源自 MySQL 聚合查询，无需调用 Dify，页面秒开
+
 ---
 
 ## 系统架构
@@ -111,17 +123,19 @@
 ┌─────────────────────────────────────────────────────┐
 │                    前端 (Vue3 + Element Plus)         │
 │  localhost:3000                                      │
-│  CandidateMatch / InterviewEval / History / Report   │
+│  Dashboard / CandidateMatch / InterviewEval /         │
+│  History / Report                                     │
 │  输入模式：文本粘贴 / 文件上传                          │
 │  结果获取：提交 → 轮询状态 → 展示报告                   │
 └──────────────┬──────────────────────────────────────┘
                │ REST API (axios, /api/v1/*)
 ┌──────────────▼──────────────────────────────────────┐
-│                 后端 (FastAPI, localhost:8000)        │
+│                 后端 (FastAPI, localhost:18000)        │
 │  /match/evaluate       /interview/evaluate           │
 │  /match/evaluate/upload /interview/evaluate/upload   │
 │  /match/reports         /interview/reports            │
 │  /match/reports/{id}    /interview/reports/{id}       │
+│  /dashboard/stats  ← 统计 API（新增）                  │
 │                                                       │
 │  BackgroundTasks → 异步调用 Dify → 结果解析 → 入库     │
 └──────────────┬──────────────────────────────────────┘
@@ -173,7 +187,8 @@ combat_HR/
 │   │   ├── config.py                # 配置（DB、Dify、文件上传）
 │   │   ├── api/
 │   │   │   ├── match.py             # 候选人匹配 REST API
-│   │   │   └── interview.py         # 面试评估 REST API
+│   │   │   ├── interview.py         # 面试评估 REST API
+│   │   │   └── dashboard.py         # 数据概览统计 API（新增）
 │   │   ├── models/
 │   │   │   ├── database.py          # SQLAlchemy 引擎、会话、基类
 │   │   │   ├── match_report.py      # 候选人匹配报告 ORM
@@ -181,7 +196,8 @@ combat_HR/
 │   │   ├── schemas/
 │   │   │   ├── common.py            # 通用 Schema（TaskResponse）
 │   │   │   ├── match.py             # 匹配请求/响应 Schema
-│   │   │   └── interview.py         # 面试请求/响应 Schema
+│   │   │   ├── interview.py         # 面试请求/响应 Schema
+│   │   │   └── dashboard.py         # Dashboard 统计 Schema（新增）
 │   │   └── services/
 │   │       ├── dify_client.py       # Dify API 封装（blocking + streaming）
 │   │       ├── match_service.py     # 匹配结果解析 + 后台任务
@@ -198,13 +214,15 @@ combat_HR/
 │   │   ├── api/
 │   │   │   ├── index.js             # axios 实例
 │   │   │   ├── match.js             # 匹配 API 封装
-│   │   │   └── interview.js         # 面试 API 封装
+│   │   │   ├── interview.js         # 面试 API 封装
+│   │   │   └── dashboard.js         # 数据概览 API（新增）
 │   │   └── views/
 │   │       ├── CandidateMatch.vue   # 候选人匹配页
 │   │       ├── MatchReportDetail.vue # 匹配报告详情页
 │   │       ├── InterviewEval.vue    # 面试评估页
 │   │       ├── InterviewReportDetail.vue # 评估报告详情页
-│   │       └── History.vue          # 历史记录页
+│   │       ├── History.vue          # 历史记录页
+│   │       └── Dashboard.vue        # 数据概览首页（新增）
 │   ├── vite.config.js
 │   └── package.json
 ├── testdata/                        # 测试数据
@@ -268,7 +286,7 @@ cp .env.example .env  # 如无 .env.example，手动创建
 
 ```env
 # 数据库
-DB_URL=mysql+pymysql://root:your_password@localhost:3306/hr_platform?charset=utf8mb4
+DB_URL=mysql+pymysql://atguigu:***@localhost:3306/hr_platform?charset=utf8mb4
 
 # Dify API（两个工作流各自独立 Key）
 DIFY_BASE_URL=https://api.dify.ai/v1
@@ -279,6 +297,8 @@ DIFY_WORKFLOW_INTERVIEW=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
 ```
 
 ### 4. 创建数据库
+
+> **Windows 用户**：如果 MySQL80 服务未启动，先用管理员权限打开终端，执行 `net start MySQL80`。
 
 ```sql
 CREATE DATABASE hr_platform DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
@@ -291,10 +311,12 @@ CREATE DATABASE hr_platform DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicod
 ```bash
 cd backend
 source .venv/bin/activate
-uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+uvicorn app.main:app --host 0.0.0.0 --port 18000 --reload
 ```
 
-访问 http://localhost:8000/docs 查看 Swagger API 文档。
+> **Windows 用户注意**：如果报错 `[WinError 10013]`（端口被占用/保留），说明该端口在 Windows 动态端口范围内。换一个高端口（如 18000、19000），并同步修改 `frontend/vite.config.js` 里的 proxy target。
+
+访问 http://localhost:18000/docs 查看 Swagger API 文档。
 
 ### 6. 启动前端
 
@@ -304,7 +326,17 @@ npm install
 npm run dev
 ```
 
-访问 http://localhost:3000。前端通过 Vite 代理将 `/api` 转发到 `localhost:8000`。
+访问 http://localhost:3000。前端通过 Vite 代理将 `/api` 转发到 `localhost:18000`。
+
+### 7. 服务端口与启动方式速查
+
+| 服务 | 端口 | 启动方式 | 验证 |
+|------|:----:|----------|------|
+| MySQL | 3306 | `net start MySQL80`（管理员终端） | `mysql -u atguigu -p` |
+| 后端 (FastAPI) | 18000 | `cd backend && uvicorn app.main:app --host 0.0.0.0 --port 18000 --reload` | http://localhost:18000/health |
+| 前端 (Vue3) | 3000 | `cd frontend && npm run dev` | http://localhost:3000 |
+
+> **启动顺序**：MySQL → 后端 → 前端。后端依赖 MySQL（启动时自动建表），前端通过 Vite 代理依赖后端。
 
 ---
 
@@ -343,7 +375,35 @@ npm run dev
 
 ## API 文档
 
-启动后端后访问 http://localhost:8000/docs 查看交互式 Swagger 文档。
+启动后端后访问 http://localhost:18000/docs 查看交互式 Swagger 文档。
+
+### 数据概览 Dashboard（新增）
+
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| GET | `/api/v1/dashboard/stats` | 获取首页聚合统计数据 |
+
+**响应示例**：
+
+```json
+{
+  "match": {
+    "total": 32, "done": 28, "processing": 2, "failed": 2,
+    "avg_score": 3.8
+  },
+  "interview": {
+    "total": 18, "done": 15, "processing": 1, "failed": 2,
+    "consensus_一致": 10, "consensus_基本一致": 3, "consensus_存在分歧": 1, "consensus_严重分歧": 1
+  },
+  "monthly_trend": [
+    {"month": "2026-04", "match_count": 8, "interview_count": 4},
+    {"month": "2026-05", "match_count": 12, "interview_count": 6},
+    {"month": "2026-06", "match_count": 10, "interview_count": 5}
+  ]
+}
+```
+
+> 该接口直接从 MySQL 聚合查询（`GROUP BY` + `COUNT` / `AVG`），不经过 Dify，响应毫秒级。
 
 ### 候选人匹配筛查
 

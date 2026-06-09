@@ -4,7 +4,7 @@
     <content url="file://$MODULE_DIR$">
       <sourceFolder url="file://$MODULE_DIR$/backend" isTestSource="false" />
     </content>
-    <orderEntry type="jdk" jdkName="Python 3.12 virtualenv at E:\atguigu\25_combat\combat_HR\backend\.venv" jdkType="Python SDK" />
+    <orderEntry type="jdk" jdkName="Python 3.13 virtualenv at D:\课程视频\combat_HR\backend\.venv" jdkType="Python SDK" />
     <orderEntry type="sourceFolder" forTests="false" />
   </component>
   <component name="PyDocumentationSettings">
